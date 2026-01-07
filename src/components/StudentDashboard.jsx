@@ -232,126 +232,232 @@ export default function StudentDashboard() {
           </p>
         </div>
       ) : (
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Sl. No
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Student Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Due Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Fees Amount
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Payment Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Receipt Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {students.map((student, index) => (
-                  <tr
-                    key={student.id}
-                    className="hover:bg-gray-50 transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {index + 1}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <button
-                        onClick={() => openStudentModal(student)}
-                        className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline"
-                      >
-                        {student.name}
-                      </button>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {student.due_date}
-                      {getOrdinalSuffix(student.due_date)} of every month
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      Rs. {student.fees_amount}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          student.payment_status === "paid"
-                            ? "bg-green-100 text-green-800"
-                            : "bg-red-100 text-red-800"
-                        }`}
-                      >
-                        {student.payment_status === "paid" ? "Paid" : "Unpaid"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span
-                        className={`px-3 py-1 text-xs font-semibold rounded-full ${
-                          student.receipt_provided
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-yellow-100 text-yellow-800"
-                        }`}
-                      >
-                        {student.receipt_provided ? "Received" : "Pending"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <div className="flex items-center gap-1 flex-wrap">
-                        {student.payment_status === "unpaid" && (
-                          <button
-                            onClick={() => handlePayment(student)}
-                            disabled={processingPayment === student.id}
-                            className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
-                          >
-                            <CheckCircle size={14} />
-                            {processingPayment === student.id
-                              ? "Processing..."
-                              : "Paid"}
-                          </button>
-                        )}
-                        {student.payment_status === "paid" &&
-                          !student.receipt_provided && (
-                            <button
-                              onClick={() => handleReceiptReceived(student)}
-                              className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
-                            >
-                              <CheckCircle size={14} />
-                              Receipt
-                            </button>
-                          )}
+        <>
+          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Sl. No
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Student Name
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Due Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Fees Amount
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Payment Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Receipt Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {students.map((student, index) => (
+                    <tr
+                      key={student.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {index + 1}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
                         <button
                           onClick={() => openStudentModal(student)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                          title="Edit"
+                          className="text-sm font-medium text-green-600 hover:text-green-700 hover:underline"
                         >
-                          <Edit2 size={16} />
+                          {student.name}
                         </button>
-                        <button
-                          onClick={() => handleDeleteStudent(student)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete"
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {student.due_date}
+                        {getOrdinalSuffix(student.due_date)} of every month
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        Rs. {student.fees_amount}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            student.payment_status === "paid"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-red-100 text-red-800"
+                          }`}
                         >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                          {student.payment_status === "paid"
+                            ? "Paid"
+                            : "Unpaid"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <span
+                          className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                            student.receipt_provided
+                              ? "bg-blue-100 text-blue-800"
+                              : "bg-yellow-100 text-yellow-800"
+                          }`}
+                        >
+                          {student.receipt_provided ? "Received" : "Pending"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <div className="flex items-center gap-1 flex-wrap">
+                          {student.payment_status === "unpaid" && (
+                            <button
+                              onClick={() => handlePayment(student)}
+                              disabled={processingPayment === student.id}
+                              className="flex items-center gap-1 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-xs"
+                            >
+                              <CheckCircle size={14} />
+                              {processingPayment === student.id
+                                ? "Processing..."
+                                : "Paid"}
+                            </button>
+                          )}
+                          {student.payment_status === "paid" &&
+                            !student.receipt_provided && (
+                              <button
+                                onClick={() => handleReceiptReceived(student)}
+                                className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs"
+                              >
+                                <CheckCircle size={14} />
+                                Receipt
+                              </button>
+                            )}
+                          <button
+                            onClick={() => openStudentModal(student)}
+                            className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Edit"
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteStudent(student)}
+                            className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
+
+          {/* ===== MOBILE CARDS ===== */}
+          <div className="md:hidden space-y-4">
+            {students.map((student, index) => (
+              <div
+                key={student.id}
+                className="bg-white rounded-lg shadow p-4 space-y-3"
+              >
+                {/* Header */}
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-xs text-gray-500">#{index + 1}</p>
+                    <p className="text-base font-semibold text-gray-800">
+                      {student.name}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Status Badges */}
+                <div className="flex flex-wrap gap-2">
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      student.payment_status === "paid"
+                        ? "bg-green-100 text-green-800"
+                        : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {student.payment_status === "paid" ? "Paid" : "Unpaid"}
+                  </span>
+
+                  <span
+                    className={`px-3 py-1 text-xs font-semibold rounded-full ${
+                      student.receipt_provided
+                        ? "bg-blue-100 text-blue-800"
+                        : "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    {student.receipt_provided
+                      ? "Receipt Received"
+                      : "Receipt Pending"}
+                  </span>
+                </div>
+
+                {/* Important Info */}
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <p className="text-gray-500">Fees</p>
+                    <p className="font-medium">₹ {student.fees_amount}</p>
+                  </div>
+
+                  <div>
+                    <p className="text-gray-500">Due Date</p>
+                    <p className="font-medium">
+                      {student.due_date}
+                      {getOrdinalSuffix(student.due_date)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 pt-2">
+                  {student.payment_status === "unpaid" && (
+                    <button
+                      onClick={() => handlePayment(student)}
+                      disabled={processingPayment === student.id}
+                      className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-green-600 text-white rounded-lg text-sm disabled:opacity-50"
+                    >
+                      <CheckCircle size={14} />
+                      {processingPayment === student.id
+                        ? "Processing..."
+                        : "Paid"}
+                    </button>
+                  )}
+
+                  {student.payment_status === "paid" &&
+                    !student.receipt_provided && (
+                      <button
+                        onClick={() => handleReceiptReceived(student)}
+                        className="flex-1 flex items-center justify-center gap-1 px-3 py-2 bg-blue-600 text-white rounded-lg text-sm"
+                      >
+                        <CheckCircle size={14} />
+                        Receipt
+                      </button>
+                    )}
+
+                  <button
+                    onClick={() => openStudentModal(student)}
+                    className="flex-1 px-3 py-2 border rounded-lg text-sm"
+                  >
+                    Edit
+                  </button>
+
+                  <button
+                    onClick={() => handleDeleteStudent(student)}
+                    className="flex-1 px-3 py-2 border border-red-300 text-red-600 rounded-lg text-sm"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
       )}
 
       {showBatchInfo && currentBatch && (
