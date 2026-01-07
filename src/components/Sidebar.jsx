@@ -1,10 +1,11 @@
-import { Users, Calendar, X, Home } from "lucide-react";
+import { Users, Calendar, X, Home, CalendarClock } from "lucide-react";
 
 export default function Sidebar({ isOpen, onClose, currentPage, onNavigate }) {
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: Home },
     { id: "students", label: "Students", icon: Users },
     { id: "batches", label: "Batches", icon: Calendar },
+    { id: "schedule", label: "Schedule", icon: CalendarClock },
   ];
 
   return (

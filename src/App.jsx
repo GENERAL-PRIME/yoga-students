@@ -3,6 +3,7 @@ import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import StudentDashboard from "./components/StudentDashboard";
 import BatchManagement from "./components/BatchManagement";
+import ScheduleManagement from "./components/ScheduleManagement";
 import Dashboard from "./components/Dashboard";
 
 function App() {
@@ -17,6 +18,8 @@ function App() {
         return <StudentDashboard />;
       case "batches":
         return <BatchManagement />;
+      case "schedule":
+        return <ScheduleManagement />;
       case "settings":
         return (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
