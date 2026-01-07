@@ -162,7 +162,7 @@ export default function ScheduleManagement() {
                     key={day}
                     className="flex items-center group hover:bg-gray-50 rounded-lg transition-colors py-1"
                   >
-                    <div className="w-24 flex-shrink-0 font-medium text-gray-700 flex items-center gap-2">
+                    <div className="w-20 flex-shrink-0 font-medium text-gray-700 flex items-center gap-2">
                       <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
                         {day.substring(0, 2)}
                       </span>
