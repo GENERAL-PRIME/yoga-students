@@ -46,6 +46,7 @@ A comprehensive web-based dashboard application for managing yoga institute stud
    - payment_bank (text)
    - last_payment_date (timestamptz)
    - created_at, updated_at (timestamptz)
+   - recipt_status (bool)
 
 3. **payment_history**
    - id (uuid)
@@ -130,62 +131,7 @@ Workflow:
 2. Student provides receipt → Receipt Status = "Received"
 3. Next month (1st) → Both statuses reset automatically
 
-### Overdue Reminders
 
-The dashboard includes a "Send Reminders" button that:
-- Identifies all students with unpaid status past their due date
-- Calculates how many days overdue each payment is
-- Can be triggered manually via UI button or automatically via cron job
-- Provides feedback on reminder delivery
-
-## API Endpoints
-
-### Edge Functions
-
-**Send Overdue Payment Reminders**
-```
-POST /functions/v1/send-overdue-reminders
-
-Response:
-{
-  "success": true,
-  "message": "Overdue payment reminders sent",
-  "totalOverdue": 5,
-  "remindersSent": 5,
-  "failed": 0,
-  "results": [...],
-  "timestamp": "2025-10-14T05:30:00.000Z"
-}
-```
-
-**Monthly Payment & Receipt Reset**
-```
-POST /functions/v1/monthly-payment-reset
-
-Response:
-{
-  "success": true,
-  "message": "Monthly payment reset completed successfully",
-  "studentsReset": 25,
-  "timestamp": "2025-10-01T00:00:00.000Z"
-}
-```
-
-This function:
-- Resets all payment statuses to "Unpaid"
-- Resets all receipt statuses to "Pending"
-
-## Deployment to Vercel
-
-1. Push your code to GitHub
-
-2. Import project in Vercel dashboard
-
-3. Configure environment variables in Vercel:
-   - `VITE_SUPABASE_URL`
-   - `VITE_SUPABASE_ANON_KEY`
-
-4. Deploy!
 
 ## Future Enhancements
 
@@ -205,37 +151,20 @@ This function:
 
 Set up a cron job to automatically reset payment and receipt statuses:
 
-**Using cron-job.org:**
-1. Create a free account at [cron-job.org](https://cron-job.org)
-2. Create a new cron job
-3. Set schedule: `0 0 1 * *` (runs at midnight on the 1st of every month)
-4. URL: `https://your-project.supabase.co/functions/v1/monthly-payment-reset`
-5. Method: POST
+**Using Supabase Integrated Cron service:**
+1. Set schedule: `0 0 1 * *` (runs at midnight on the 1st of every month)
+2. Method: POST
+3. Update the students Table at Midnight on the 1st of every month
 
 **What gets reset:**
 - All payment statuses reset to "Unpaid"
 - All receipt statuses reset to "Pending"
 
-**Using Supabase Cron (if available):**
-- Use Supabase's built-in cron functionality if available in your plan
-
-### 2. Daily Overdue Reminders (Recommended: Daily at 10 AM)
-
-Set up a daily cron job to send reminders to overdue students:
-
-**Using cron-job.org:**
-1. Create another cron job
-2. Set schedule: `0 10 * * *` (runs daily at 10:00 AM)
-3. URL: `https://your-project.supabase.co/functions/v1/send-overdue-reminders`
-4. Method: POST
-
-This ensures that students with overdue payments receive regular reminders without manual intervention.
 
 ### Manual Triggers
 
-Both functions can also be triggered manually:
+Functions can also be triggered manually:
 - **Monthly Reset**: Contact your system administrator or use backend access
-- **Overdue Reminders**: Click the "Send Reminders" button in the Student Dashboard
 
 ## License
 
