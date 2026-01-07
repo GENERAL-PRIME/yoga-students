@@ -48,7 +48,6 @@ export default function ScheduleManagement() {
     setSelectedBatch(null);
   };
 
-  // Helper to parse time string "6:00 AM - 7:00 AM" to minutes from midnight
   const parseTimeRange = (timeStr) => {
     try {
       const [startStr, endStr] = timeStr.split("-").map((s) => s.trim());
@@ -63,10 +62,48 @@ export default function ScheduleManagement() {
 
       const start = toMinutes(startStr);
       const end = toMinutes(endStr);
-      return { start, duration: end - start };
+      let duration = end - start;
+      if (duration < 0) duration += 24 * 60;
+
+      return { start, duration };
     } catch (e) {
       return null;
     }
+  };
+
+  const getDayLayout = (day) => {
+    const dayItems = batches
+      .filter((b) => b.weekly_days.includes(day))
+      .map((b) => {
+        const time = parseTimeRange(b.timing);
+        return time ? { ...b, ...time } : null;
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.start - b.start);
+
+    // Calculate overlap/lane index
+    const lanes = [];
+
+    const itemsWithLane = dayItems.map((item) => {
+      let laneIndex = -1;
+
+      for (let i = 0; i < lanes.length; i++) {
+        if (lanes[i] <= item.start) {
+          laneIndex = i;
+          lanes[i] = item.start + item.duration;
+          break;
+        }
+      }
+
+      if (laneIndex === -1) {
+        laneIndex = lanes.length;
+        lanes.push(item.start + item.duration);
+      }
+
+      return { ...item, laneIndex };
+    });
+
+    return itemsWithLane;
   };
 
   if (loading) {
@@ -77,10 +114,13 @@ export default function ScheduleManagement() {
     );
   }
 
-  // Constants for Gantt Chart Limits
-  const START_HOUR = 5; // 5 AM
-  const END_HOUR = 22; // 10 PM
+  const START_HOUR = 5;
+  const END_HOUR = 22;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
+
+  // LAYOUT CONFIG
+  const CARD_HEIGHT = 36; // Fixed height for cards
+  const STACK_OFFSET = 5; // Pixels to offset per overlap
 
   return (
     <div className="space-y-6">
@@ -89,7 +129,6 @@ export default function ScheduleManagement() {
       </div>
 
       <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-        {/* Mobile Friendly Scroll Container */}
         <div className="overflow-x-auto">
           <div className="min-w-[800px] p-4">
             {/* Time Header */}
@@ -114,56 +153,59 @@ export default function ScheduleManagement() {
               </div>
             </div>
 
-            {/* Days Rows */}
             <div className="space-y-2">
-              {weekDays.map((day) => (
-                <div
-                  key={day}
-                  className="flex items-center group hover:bg-gray-50 rounded-lg transition-colors py-1"
-                >
-                  <div className="w-24 flex-shrink-0 font-medium text-gray-700 flex items-center gap-2">
-                    <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
-                      {day.substring(0, 3)}
-                    </span>
-                  </div>
+              {weekDays.map((day) => {
+                const items = getDayLayout(day);
 
-                  {/* Timeline Track */}
-                  <div className="flex-1 relative h-12 bg-gray-100 rounded-lg mx-1 border border-gray-200">
-                    {/* Grid Lines */}
-                    {Array.from({ length: END_HOUR - START_HOUR }).map(
-                      (_, i) => (
-                        <div
-                          key={i}
-                          className="absolute top-0 bottom-0 border-r border-gray-200 border-dashed"
-                          style={{
-                            left: `${
-                              ((i + 1) / (END_HOUR - START_HOUR)) * 100
-                            }%`,
-                          }}
-                        />
-                      )
-                    )}
+                return (
+                  <div
+                    key={day}
+                    className="flex items-center group hover:bg-gray-50 rounded-lg transition-colors py-1"
+                  >
+                    <div className="w-24 flex-shrink-0 font-medium text-gray-700 flex items-center gap-2">
+                      <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
+                        {day.substring(0, 2)}
+                      </span>
+                    </div>
 
-                    {/* Batch Bars */}
-                    {batches
-                      .filter((b) => b.weekly_days.includes(day))
-                      .map((batch) => {
-                        const timeData = parseTimeRange(batch.timing);
-                        if (!timeData) return null;
+                    <div className="flex-1 relative h-12 bg-gray-100 rounded-lg mx-2 border border-gray-200">
+                      {/* Grid Lines */}
+                      {Array.from({ length: END_HOUR - START_HOUR }).map(
+                        (_, i) => (
+                          <div
+                            key={i}
+                            className="absolute top-0 bottom-0 border-r border-gray-200 border-dashed"
+                            style={{
+                              left: `${
+                                ((i + 1) / (END_HOUR - START_HOUR)) * 100
+                              }%`,
+                            }}
+                          />
+                        )
+                      )}
 
-                        const startOffset = timeData.start - START_HOUR * 60;
+                      {/* Batch Bars */}
+                      {items.map((batch) => {
+                        const startOffset = batch.start - START_HOUR * 60;
                         const leftPercent = (startOffset / TOTAL_MINUTES) * 100;
                         const widthPercent =
-                          (timeData.duration / TOTAL_MINUTES) * 100;
+                          (batch.duration / TOTAL_MINUTES) * 100;
+
+                        const baseTop = 6;
+                        const topPos = baseTop + batch.laneIndex * STACK_OFFSET;
+                        const zIndex = 10 + batch.laneIndex;
 
                         return (
                           <div
                             key={batch.id}
                             onClick={() => openModal(batch)}
-                            className="absolute top-1 bottom-1 bg-green-500 hover:bg-green-600 rounded-md shadow-sm cursor-pointer flex items-center justify-center overflow-hidden transition-all hover:scale-[1.02] z-10"
+                            className="absolute bg-green-500 hover:bg-green-600 rounded-md shadow-sm cursor-pointer flex items-center justify-center overflow-hidden transition-all hover:scale-[1.02] border border-green-400/50"
                             style={{
                               left: `${leftPercent}%`,
                               width: `${widthPercent}%`,
+                              height: `${CARD_HEIGHT}px`,
+                              top: `${topPos}px`,
+                              zIndex: zIndex,
                             }}
                             title={`${batch.name} (${batch.timing})`}
                           >
@@ -173,15 +215,16 @@ export default function ScheduleManagement() {
                           </div>
                         );
                       })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Detail Modal (Read-Only) */}
+      {/* Detail Modal */}
       {isModalOpen && selectedBatch && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
