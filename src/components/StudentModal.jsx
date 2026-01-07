@@ -108,6 +108,7 @@ export default function StudentModal({ student, batchId, onClose }) {
                   setFormData({ ...formData, name: e.target.value })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                placeholder="Enter student name"
                 required
               />
             </div>
@@ -126,6 +127,7 @@ export default function StudentModal({ student, batchId, onClose }) {
                   })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                placeholder="+91 98765 43210"
                 required
               />
             </div>
@@ -186,13 +188,14 @@ export default function StudentModal({ student, batchId, onClose }) {
                   })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                placeholder="1000"
                 required
               />
             </div>
 
             <div className="md:col-span-2">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Payment Bank
+                Payment Method
               </label>
               <input
                 type="text"
@@ -204,6 +207,7 @@ export default function StudentModal({ student, batchId, onClose }) {
                   })
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                placeholder="e.g., In-Hand, Online(SBI), Both etc."
               />
             </div>
           </div>

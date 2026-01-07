@@ -1,22 +1,23 @@
-import { useState } from 'react';
-import Header from './components/Header';
-import Sidebar from './components/Sidebar';
-import StudentDashboard from './components/StudentDashboard';
-import BatchManagement from './components/BatchManagement';
+import { useState } from "react";
+import Header from "./components/Header";
+import Sidebar from "./components/Sidebar";
+import StudentDashboard from "./components/StudentDashboard";
+import BatchManagement from "./components/BatchManagement";
+import Dashboard from "./components/Dashboard";
 
 function App() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [currentPage, setCurrentPage] = useState('dashboard');
+  const [currentPage, setCurrentPage] = useState("dashboard");
 
   const renderPage = () => {
     switch (currentPage) {
-      case 'dashboard':
+      case "dashboard":
+        return <Dashboard />;
+      case "students":
         return <StudentDashboard />;
-      case 'students':
-        return <StudentDashboard />;
-      case 'batches':
+      case "batches":
         return <BatchManagement />;
-      case 'settings':
+      case "settings":
         return (
           <div className="bg-white rounded-lg shadow-md p-8 text-center">
             <h2 className="text-2xl font-bold text-gray-800 mb-4">Settings</h2>
