@@ -33,7 +33,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen overflow-hidden bg-gray-50 flex flex-col">
       <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
       <div className="flex flex-1 overflow-hidden">
