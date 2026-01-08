@@ -108,7 +108,7 @@ export default function ScheduleManagement() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600"></div>
       </div>
     );
@@ -117,26 +117,28 @@ export default function ScheduleManagement() {
   const START_HOUR = 5;
   const END_HOUR = 22;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-
-  // LAYOUT CONFIG
-  const CARD_HEIGHT = 36; // Fixed height for cards
-  const STACK_OFFSET = 5; // Pixels to offset per overlap
+  const STACK_OFFSET = 6; // Pixels to offset for overlapping cards
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">Class Schedule</h2>
+    <div className="h-full flex flex-col gap-4">
+      <div className="shrink-0 flex items-center justify-between">
+        <h2 className="text-xl md:text-2xl font-bold text-gray-800">
+          Class Schedule
+        </h2>
       </div>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden border border-gray-200">
-        <div className="overflow-x-auto">
-          <div className="min-w-[800px] p-4">
+      <div className="flex-1 bg-white rounded-lg shadow-md border border-gray-200 flex flex-col overflow-hidden">
+        {/* Scroll Container for Mobile - Horizontal Scroll ONLY */}
+        {/* Added pr-4 to prevent right-side clipping */}
+        <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar">
+          {/* Inner Content - Min Width forces horizontal scroll on mobile */}
+          <div className="h-full flex flex-col min-w-[800px] md:min-w-0 md:w-full pr-6">
             {/* Time Header */}
-            <div className="flex border-b border-gray-200 pb-2 mb-2">
-              <div className="w-24 flex-shrink-0 font-semibold text-gray-500">
+            <div className="shrink-0 flex border-b border-gray-200 py-3 bg-gray-50">
+              <div className="w-14 md:w-24 flex-shrink-0 font-semibold text-gray-500 text-center text-xs md:text-sm">
                 Day
               </div>
-              <div className="flex-1 relative h-6">
+              <div className="flex-1 relative h-4 md:h-6">
                 {Array.from({ length: END_HOUR - START_HOUR + 1 }).map(
                   (_, i) => (
                     <div
@@ -153,28 +155,31 @@ export default function ScheduleManagement() {
               </div>
             </div>
 
-            <div className="space-y-2">
+            {/* Schedule Rows Container - Fills remaining vertical space evenly */}
+            <div className="flex-1 flex flex-col min-h-0">
               {weekDays.map((day) => {
                 const items = getDayLayout(day);
 
                 return (
                   <div
                     key={day}
-                    className="flex items-center group hover:bg-gray-50 rounded-lg transition-colors py-1"
+                    className="flex-1 flex items-center group hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 relative min-h-[40px]"
                   >
-                    <div className="w-20 flex-shrink-0 font-medium text-gray-700 flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-full bg-green-100 text-green-700 flex items-center justify-center text-xs font-bold">
-                        {day.substring(0, 2)}
+                    {/* Day Label */}
+                    <div className="w-14 md:w-24 flex-shrink-0 flex justify-center items-center px-1 border-r border-transparent">
+                      <span className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-green-50 text-green-700 flex items-center justify-center text-[10px] md:text-sm font-bold">
+                        {day.substring(0, 3)}
                       </span>
                     </div>
 
-                    <div className="flex-1 relative h-12 bg-gray-100 rounded-lg mx-2 border border-gray-200">
-                      {/* Grid Lines */}
+                    {/* Timeline Lane */}
+                    <div className="flex-1 relative h-full border-l border-gray-100">
+                      {/* Vertical Grid Lines */}
                       {Array.from({ length: END_HOUR - START_HOUR }).map(
                         (_, i) => (
                           <div
                             key={i}
-                            className="absolute top-0 bottom-0 border-r border-gray-200 border-dashed"
+                            className="absolute top-0 bottom-0 border-r border-gray-100 dashed"
                             style={{
                               left: `${
                                 ((i + 1) / (END_HOUR - START_HOUR)) * 100
@@ -184,32 +189,32 @@ export default function ScheduleManagement() {
                         )
                       )}
 
-                      {/* Batch Bars */}
+                      {/* Class Cards */}
                       {items.map((batch) => {
                         const startOffset = batch.start - START_HOUR * 60;
                         const leftPercent = (startOffset / TOTAL_MINUTES) * 100;
                         const widthPercent =
                           (batch.duration / TOTAL_MINUTES) * 100;
 
-                        const baseTop = 6;
-                        const topPos = baseTop + batch.laneIndex * STACK_OFFSET;
-                        const zIndex = 10 + batch.laneIndex;
+                        // RESTORED STACKING EFFECT
+                        // We use a smaller base height (60%) to allow room for stacking
+                        const stackShift = batch.laneIndex * STACK_OFFSET;
 
                         return (
                           <div
                             key={batch.id}
                             onClick={() => openModal(batch)}
-                            className="absolute bg-green-500 hover:bg-green-600 rounded-md shadow-sm cursor-pointer flex items-center justify-center overflow-hidden transition-all hover:scale-[1.02] border border-green-400/50"
+                            className="absolute bg-green-500 hover:bg-green-600 rounded shadow-sm cursor-pointer flex items-center justify-center overflow-hidden transition-all hover:scale-105 border border-green-400/50 z-10"
                             style={{
                               left: `${leftPercent}%`,
                               width: `${widthPercent}%`,
-                              height: `${CARD_HEIGHT}px`,
-                              top: `${topPos}px`,
-                              zIndex: zIndex,
+                              height: "65%", // Reduced from 80% to allow stacking space
+                              top: `calc(15% + ${stackShift}px)`, // Base 15% + offset
+                              zIndex: 10 + batch.laneIndex,
                             }}
                             title={`${batch.name} (${batch.timing})`}
                           >
-                            <span className="text-xs text-white font-medium whitespace-nowrap px-2 truncate">
+                            <span className="text-[10px] md:text-xs text-white font-medium whitespace-nowrap px-1 truncate">
                               {batch.name}
                             </span>
                           </div>

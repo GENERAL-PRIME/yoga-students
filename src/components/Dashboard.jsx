@@ -175,11 +175,11 @@ export default function Dashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="h-full flex flex-col gap-6">
+      <div className="shrink-0 flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-gray-800">Dashboard</h2>
       </div>
-      <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="shrink-0 bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center gap-3">
           <div className="flex-1">
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -223,30 +223,30 @@ export default function Dashboard() {
         </div>
       ) : (
         <>
-          <div className="hidden md:block bg-white rounded-lg shadow-md overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
+          <div className="hidden md:flex flex-col flex-1 bg-white rounded-lg shadow-md overflow-hidden min-h-0">
+            <div className="flex-1 overflow-auto">
+              <table className="w-full relative">
+                <thead className="bg-gray-50 border-b sticky top-0 z-10 shadow-sm">
                   <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Sl. No
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Student Name
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Due Date
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Fees Amount
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Payment Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Receipt Status
                     </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider bg-gray-50">
                       Actions
                     </th>
                   </tr>
@@ -347,7 +347,7 @@ export default function Dashboard() {
           </div>
 
           {/* ===== MOBILE CARDS ===== */}
-          <div className="md:hidden space-y-4">
+          <div className="md:hidden flex-1 overflow-y-auto min-h-0 space-y-4 pr-1">
             {students.map((student, index) => (
               <div
                 key={student.id}

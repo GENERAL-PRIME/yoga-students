@@ -138,8 +138,8 @@ export default function BatchManagement() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
+    <div className="h-full flex flex-col gap-6">
+      <div className="shrink-0 flex items-center justify-between flex-wrap gap-3">
         <h2 className="text-2xl font-bold text-gray-800">Batch Management</h2>
         <div className="flex items-center gap-2">
           <button
@@ -152,59 +152,62 @@ export default function BatchManagement() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {batches.map((batch) => (
-          <div
-            key={batch.id}
-            className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
-          >
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold text-gray-800">
-                  {batch.name}
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">{batch.timing}</p>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => openModal(batch)}
-                  className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                >
-                  <Edit2 size={18} />
-                </button>
-                <button
-                  onClick={() => confirmDelete(batch)}
-                  className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <Trash2 size={18} />
-                </button>
-              </div>
-            </div>
-
-            <div>
-              <p className="text-xs text-gray-500 mb-2">Weekly Days:</p>
-              <div className="flex flex-wrap gap-1">
-                {batch.weekly_days.map((day) => (
-                  <span
-                    key={day}
-                    className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full"
+      <div className="flex-1 overflow-y-auto min-h-0 pr-1 pb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {batches.map((batch) => (
+            <div
+              key={batch.id}
+              className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-800">
+                    {batch.name}
+                  </h3>
+                  <p className="text-sm text-gray-600 mt-1">{batch.timing}</p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => openModal(batch)}
+                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                   >
-                    {day.substring(0, 3)}
-                  </span>
-                ))}
+                    <Edit2 size={18} />
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(batch)}
+                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500 mb-2">Weekly Days:</p>
+                <div className="flex flex-wrap gap-1">
+                  {batch.weekly_days.map((day) => (
+                    <span
+                      key={day}
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full"
+                    >
+                      {day.substring(0, 3)}
+                    </span>
+                  ))}
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+
+        {batches.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500">
+              No batches found. Create your first batch to get started.
+            </p>
           </div>
-        ))}
+        )}
       </div>
 
-      {batches.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-gray-500">
-            No batches found. Create your first batch to get started.
-          </p>
-        </div>
-      )}
       {showDeleteConfirm && batchToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
