@@ -1,80 +1,72 @@
-import { X, Calendar, Clock, Users } from 'lucide-react';
+import { X, Clock, Wifi, MapPin } from "lucide-react";
 
 export default function BatchInfoCard({ batch, studentCount, onClose }) {
+  // Safe fallback if schedule is undefined
+  const schedules = batch.schedule || [];
+
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
         <div className="flex items-center justify-between p-6 border-b">
-          <h3 className="text-xl font-semibold text-gray-800">Batch Information</h3>
+          <h3 className="text-xl font-semibold text-gray-800">
+            Batch Information
+          </h3>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-gray-100 rounded-lg"
           >
             <X size={20} />
           </button>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
           <div>
-            <h4 className="text-2xl font-bold text-gray-900 mb-2">{batch.name}</h4>
+            <h4 className="text-2xl font-bold text-gray-900">{batch.name}</h4>
+            <p className="text-sm text-gray-500 mt-1">
+              {studentCount} Students Enrolled
+            </p>
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <Clock size={20} className="text-green-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Timing</p>
-                <p className="font-medium">{batch.timing}</p>
-              </div>
-            </div>
+          <div className="space-y-4">
+            <h5 className="font-semibold text-gray-700 border-b pb-2">
+              Schedule
+            </h5>
+            {schedules.length === 0 && <p>No schedule defined.</p>}
 
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar size={20} className="text-blue-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Weekly Days</p>
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {batch.weekly_days.map((day) => (
+            {schedules.map((sched, idx) => (
+              <div
+                key={idx}
+                className="bg-gray-50 p-4 rounded-lg border border-gray-100"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  {sched.mode === "Online" ? (
+                    <Wifi size={18} className="text-blue-500" />
+                  ) : (
+                    <MapPin size={18} className="text-red-500" />
+                  )}
+                  <span className="font-bold text-gray-800">
+                    {sched.mode} Class
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-2 text-gray-600 mb-3">
+                  <Clock size={16} />
+                  <span>{sched.timing}</span>
+                </div>
+
+                <div className="flex flex-wrap gap-1">
+                  {sched.days.map((day) => (
                     <span
                       key={day}
-                      className="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded-full font-medium"
+                      className="px-2 py-1 text-xs bg-green-100 text-green-700 rounded-full font-medium"
                     >
                       {day}
                     </span>
                   ))}
                 </div>
               </div>
-            </div>
-
-            <div className="flex items-center gap-3 text-gray-700">
-              <div className="p-2 bg-purple-100 rounded-lg">
-                <Users size={20} className="text-purple-600" />
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">Total Students</p>
-                <p className="font-medium">{studentCount}</p>
-              </div>
-            </div>
+            ))}
           </div>
-
-          <div className="pt-4 border-t">
-            <div className="text-xs text-gray-500">
-              <p>Created: {new Date(batch.created_at).toLocaleDateString()}</p>
-              <p>Last Updated: {new Date(batch.updated_at).toLocaleDateString()}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="p-6 border-t">
-          <button
-            onClick={onClose}
-            className="w-full px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          >
-            Close
-          </button>
         </div>
       </div>
     </div>

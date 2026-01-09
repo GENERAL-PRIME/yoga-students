@@ -18,7 +18,7 @@ function getOrdinalSuffix(day) {
   }
 }
 
-export default function StudentDashboard() {
+export default function Dashboard() {
   const [batches, setBatches] = useState([]);
   const [selectedBatch, setSelectedBatch] = useState("");
   const [students, setStudents] = useState([]);
@@ -188,7 +188,6 @@ export default function StudentDashboard() {
           </button>
         </div>
       </div>
-
       <div className="shrink-0 bg-white rounded-lg shadow-md p-6">
         <div className="flex items-center gap-3">
           <div className="flex-1">
@@ -202,7 +201,7 @@ export default function StudentDashboard() {
             >
               {batches.map((batch) => (
                 <option key={batch.id} value={batch.id}>
-                  {batch.name} ({batch.timing})
+                  {batch.name}
                 </option>
               ))}
             </select>

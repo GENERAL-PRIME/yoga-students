@@ -192,7 +192,7 @@ export default function Dashboard() {
             >
               {batches.map((batch) => (
                 <option key={batch.id} value={batch.id}>
-                  {batch.name} ({batch.timing})
+                  {batch.name}
                 </option>
               ))}
             </select>

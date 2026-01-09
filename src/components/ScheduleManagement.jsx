@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { X, Clock } from "lucide-react";
+import { X, Clock, Wifi, MapPin } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
 export default function ScheduleManagement() {
   const [batches, setBatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedBatch, setSelectedBatch] = useState(null);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const weekDays = [
     "Monday",
@@ -38,18 +38,19 @@ export default function ScheduleManagement() {
     }
   };
 
-  const openModal = (batch) => {
-    setSelectedBatch(batch);
+  const openModal = (session) => {
+    setSelectedSession(session);
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setSelectedBatch(null);
+    setSelectedSession(null);
   };
 
   const parseTimeRange = (timeStr) => {
     try {
+      if (!timeStr) return null;
       const [startStr, endStr] = timeStr.split("-").map((s) => s.trim());
 
       const toMinutes = (time) => {
@@ -72,11 +73,28 @@ export default function ScheduleManagement() {
   };
 
   const getDayLayout = (day) => {
+    // Flatten batches into individual schedule sessions for the day
     const dayItems = batches
-      .filter((b) => b.weekly_days.includes(day))
-      .map((b) => {
-        const time = parseTimeRange(b.timing);
-        return time ? { ...b, ...time } : null;
+      .flatMap((batch) => {
+        const schedules = batch.schedule || [];
+
+        // Find all schedule entries for this batch that occur on 'day'
+        return schedules
+          .filter((sched) => sched.days && sched.days.includes(day))
+          .map((sched) => {
+            const time = parseTimeRange(sched.timing);
+            if (!time) return null;
+
+            return {
+              id: batch.id, // Keep original batch ID for reference
+              name: batch.name,
+              ...time, // start, duration
+              mode: sched.mode,
+              timingLabel: sched.timing,
+              days: sched.days, // Pass full list of days for this specific schedule
+              uniqueKey: `${batch.id}-${sched.timing}-${day}`, // Unique key for React rendering
+            };
+          });
       })
       .filter(Boolean)
       .sort((a, b) => a.start - b.start);
@@ -125,11 +143,18 @@ export default function ScheduleManagement() {
         <h2 className="text-xl md:text-2xl font-bold text-gray-800">
           Class Schedule
         </h2>
+        <div className="flex gap-4 text-xs font-medium text-gray-600">
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-green-500 rounded"></div> Offline
+          </div>
+          <div className="flex items-center gap-1">
+            <div className="w-3 h-3 bg-blue-500 rounded"></div> Online
+          </div>
+        </div>
       </div>
 
       <div className="flex-1 bg-white rounded-lg shadow-md border border-gray-200 flex flex-col overflow-hidden">
         {/* Scroll Container for Mobile - Horizontal Scroll ONLY */}
-        {/* Added pr-4 to prevent right-side clipping */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar">
           {/* Inner Content - Min Width forces horizontal scroll on mobile */}
           <div className="h-full flex flex-col min-w-[800px] md:min-w-0 md:w-full pr-6">
@@ -155,7 +180,7 @@ export default function ScheduleManagement() {
               </div>
             </div>
 
-            {/* Schedule Rows Container - Fills remaining vertical space evenly */}
+            {/* Schedule Rows Container */}
             <div className="flex-1 flex flex-col min-h-0">
               {weekDays.map((day) => {
                 const items = getDayLayout(day);
@@ -163,7 +188,7 @@ export default function ScheduleManagement() {
                 return (
                   <div
                     key={day}
-                    className="flex-1 flex items-center group hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 relative min-h-[40px]"
+                    className="flex-1 flex items-center group hover:bg-gray-50 transition-colors border-b border-gray-100 last:border-0 relative min-h-[50px]"
                   >
                     {/* Day Label */}
                     <div className="w-14 md:w-24 flex-shrink-0 flex justify-center items-center px-1 border-r border-transparent">
@@ -190,32 +215,45 @@ export default function ScheduleManagement() {
                       )}
 
                       {/* Class Cards */}
-                      {items.map((batch) => {
-                        const startOffset = batch.start - START_HOUR * 60;
+                      {items.map((session) => {
+                        const startOffset = session.start - START_HOUR * 60;
                         const leftPercent = (startOffset / TOTAL_MINUTES) * 100;
                         const widthPercent =
-                          (batch.duration / TOTAL_MINUTES) * 100;
+                          (session.duration / TOTAL_MINUTES) * 100;
 
-                        // RESTORED STACKING EFFECT
-                        // We use a smaller base height (60%) to allow room for stacking
-                        const stackShift = batch.laneIndex * STACK_OFFSET;
+                        const stackShift = session.laneIndex * STACK_OFFSET;
+
+                        // Color coding based on mode
+                        const isOnline = session.mode === "Online";
+                        const bgColor = isOnline
+                          ? "bg-blue-500"
+                          : "bg-green-500";
+                        const hoverColor = isOnline
+                          ? "hover:bg-blue-600"
+                          : "hover:bg-green-600";
+                        const borderColor = isOnline
+                          ? "border-blue-400/50"
+                          : "border-green-400/50";
 
                         return (
                           <div
-                            key={batch.id}
-                            onClick={() => openModal(batch)}
-                            className="absolute bg-green-500 hover:bg-green-600 rounded shadow-sm cursor-pointer flex items-center justify-center overflow-hidden transition-all hover:scale-105 border border-green-400/50 z-10"
+                            key={session.uniqueKey}
+                            onClick={() => openModal(session)}
+                            className={`absolute ${bgColor} ${hoverColor} rounded shadow-sm cursor-pointer flex flex-col items-center justify-center overflow-hidden transition-all hover:scale-105 border ${borderColor} z-10`}
                             style={{
                               left: `${leftPercent}%`,
                               width: `${widthPercent}%`,
-                              height: "65%", // Reduced from 80% to allow stacking space
-                              top: `calc(15% + ${stackShift}px)`, // Base 15% + offset
-                              zIndex: 10 + batch.laneIndex,
+                              height: "65%",
+                              top: `calc(15% + ${stackShift}px)`,
+                              zIndex: 10 + session.laneIndex,
                             }}
-                            title={`${batch.name} (${batch.timing})`}
+                            title={`${session.name} (${session.timingLabel}) - ${session.mode}`}
                           >
-                            <span className="text-[10px] md:text-xs text-white font-medium whitespace-nowrap px-1 truncate">
-                              {batch.name}
+                            <span className="text-[10px] md:text-xs text-white font-medium whitespace-nowrap px-1 truncate w-full text-center">
+                              {session.name}
+                            </span>
+                            <span className="text-[8px] text-white/90 uppercase tracking-wider font-semibold">
+                              {session.mode}
                             </span>
                           </div>
                         );
@@ -230,7 +268,7 @@ export default function ScheduleManagement() {
       </div>
 
       {/* Detail Modal */}
-      {isModalOpen && selectedBatch && (
+      {isModalOpen && selectedSession && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
             <div className="flex items-center justify-between p-6 border-b">
@@ -251,7 +289,7 @@ export default function ScheduleManagement() {
                   Class Name
                 </label>
                 <p className="text-lg font-medium text-gray-800">
-                  {selectedBatch.name}
+                  {selectedSession.name}
                 </p>
               </div>
 
@@ -261,17 +299,41 @@ export default function ScheduleManagement() {
                 </label>
                 <div className="flex items-center gap-2 text-gray-700">
                   <Clock size={18} className="text-green-600" />
-                  <span className="font-medium">{selectedBatch.timing}</span>
+                  <span className="font-medium">
+                    {selectedSession.timingLabel}
+                  </span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-500 mb-1">
+                  Mode
+                </label>
+                <div className="flex items-center gap-2 text-gray-700">
+                  {selectedSession.mode === "Online" ? (
+                    <Wifi size={18} className="text-blue-500" />
+                  ) : (
+                    <MapPin size={18} className="text-green-500" />
+                  )}
+                  <span
+                    className={`font-bold ${
+                      selectedSession.mode === "Online"
+                        ? "text-blue-600"
+                        : "text-green-600"
+                    }`}
+                  >
+                    {selectedSession.mode}
+                  </span>
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
-                  Scheduled Days
+                  Scheduled Days (For this timing)
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {weekDays.map((day) => {
-                    const isActive = selectedBatch.weekly_days.includes(day);
+                    const isActive = selectedSession.days.includes(day);
                     if (!isActive) return null;
                     return (
                       <span
