@@ -71,6 +71,13 @@ CREATE TABLE IF NOT EXISTS batches (
   schedule jsonb DEFAULT '[]'::jsonb,
 );
 
+CREATE TABLE IF NOT EXISTS profiles (
+  id uuid NOT NULL,
+  email text,
+  is_verified boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+);
+
 -- Create students table
 CREATE TABLE IF NOT EXISTS students (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
