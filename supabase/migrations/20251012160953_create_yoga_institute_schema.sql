@@ -68,9 +68,7 @@ CREATE TABLE IF NOT EXISTS batches (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name text NOT NULL,
   timing text NOT NULL,
-  weekly_days text[] NOT NULL DEFAULT '{}',
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now()
+  schedule jsonb DEFAULT '[]'::jsonb,
 );
 
 -- Create students table
