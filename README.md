@@ -33,7 +33,6 @@ A comprehensive web-based dashboard application for managing yoga institute stud
 
    - `id` (uuid)
    - `name` (text)
-   - `timing` (text)
    - `schedule` (jsonb) - _Stores weekly schedule details_
    - `created_at`, `updated_at` (timestamptz)
 
@@ -83,12 +82,10 @@ A comprehensive web-based dashboard application for managing yoga institute stud
    cd <project-directory>
    ```
 
-````
-
 2. Install dependencies:
-```bash
-npm install
-````
+   ```bash
+   npm install
+   ```
 
 3. Environment variables are already configured in `.env` file:
 
