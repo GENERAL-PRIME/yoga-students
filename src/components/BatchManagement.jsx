@@ -1,20 +1,20 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, X, Clock, Wifi, MapPin } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { useState } from "react";
+import { Plus, Edit2, Trash2, X } from "lucide-react";
+import { useBatches } from "../hooks/useYogaData"; // Updated hook
+import ScheduleDisplay from "./ScheduleDisplay"; // New component
 
 export default function BatchManagement() {
-  const [batches, setBatches] = useState([]);
+  const { batches, loading, addBatch, updateBatch, deleteBatch } = useBatches();
+
+  // UI State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBatch, setEditingBatch] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [batchToDelete, setBatchToDelete] = useState(null);
 
   // Form State
   const [batchName, setBatchName] = useState("");
   const [schedules, setSchedules] = useState([]);
-
-  // Temporary state for the schedule being added
   const [currentSchedule, setCurrentSchedule] = useState({
     startTime: "",
     endTime: "",
@@ -32,37 +32,12 @@ export default function BatchManagement() {
     "Sunday",
   ];
 
-  useEffect(() => {
-    fetchBatches();
-  }, []);
+  // --- Handlers ---
 
-  const fetchBatches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("batches")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setBatches(data || []);
-    } catch (error) {
-      console.error("Error fetching batches:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const openModal = (batch) => {
-    if (batch) {
-      setEditingBatch(batch);
-      setBatchName(batch.name);
-      setSchedules(batch.schedule || []); // Load existing schedule
-    } else {
-      setEditingBatch(null);
-      setBatchName("");
-      setSchedules([]);
-    }
-    // Reset current schedule input
+  const openModal = (batch = null) => {
+    setEditingBatch(batch);
+    setBatchName(batch ? batch.name : "");
+    setSchedules(batch ? batch.schedule || [] : []);
     setCurrentSchedule({
       startTime: "",
       endTime: "",
@@ -75,111 +50,67 @@ export default function BatchManagement() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingBatch(null);
-    setBatchName("");
-    setSchedules([]);
   };
 
-  // Helper to format time for display/storage (e.g. "6:00 AM - 7:00 AM")
-  const formatTimeRange = (start, end) => {
-    const format = (timeStr) => {
-      if (!timeStr) return "";
-      let [hours, minutes] = timeStr.split(":");
-      hours = parseInt(hours);
-      const ampm = hours >= 12 ? "PM" : "AM";
-      hours = hours % 12;
-      hours = hours ? hours : 12;
-      return `${hours}:${minutes} ${ampm}`;
-    };
-    return `${format(start)} - ${format(end)}`;
-  };
-
-  const addScheduleItem = () => {
-    if (
-      !currentSchedule.startTime ||
-      !currentSchedule.endTime ||
-      currentSchedule.days.length === 0
-    ) {
-      alert("Please select start time, end time, and at least one day.");
-      return;
-    }
-
-    const timingString = formatTimeRange(
-      currentSchedule.startTime,
-      currentSchedule.endTime
-    );
-
-    setSchedules([
-      ...schedules,
-      {
-        ...currentSchedule,
-        timing: timingString, // Store the formatted string for compatibility
-      },
-    ]);
-
-    // Reset inputs
-    setCurrentSchedule((prev) => ({ ...prev, days: [] })); // Keep times/mode for easier repeated entry? Or clear all. Let's clear days.
-  };
-
-  const removeScheduleItem = (index) => {
-    setSchedules(schedules.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (schedules.length === 0) {
-      alert("Please add at least one schedule configuration.");
-      return;
-    }
+    if (schedules.length === 0)
+      return alert("Please add at least one schedule configuration.");
 
-    const payload = {
-      name: batchName,
-      schedule: schedules, // Saving the JSON array
-    };
+    const payload = { name: batchName, schedule: schedules };
 
     try {
       if (editingBatch) {
-        const { error } = await supabase
-          .from("batches")
-          .update(payload)
-          .eq("id", editingBatch.id);
-        if (error) throw error;
+        await updateBatch(editingBatch.id, payload);
       } else {
-        const { error } = await supabase.from("batches").insert([payload]);
-        if (error) throw error;
+        await addBatch(payload);
       }
-      fetchBatches();
       closeModal();
     } catch (error) {
-      console.error("Error saving batch:", error);
-      alert("Failed to save batch.");
+      alert("Failed to save batch: " + error.message);
     }
-  };
-
-  // ... (Delete handlers remain the same: confirmDelete, cancelDelete, handleDelete) ...
-  const confirmDelete = (batch) => {
-    setBatchToDelete(batch);
-    setShowDeleteConfirm(true);
-  };
-
-  const cancelDelete = () => {
-    setBatchToDelete(null);
-    setShowDeleteConfirm(false);
   };
 
   const handleDelete = async () => {
     if (!batchToDelete) return;
     try {
-      const { error } = await supabase
-        .from("batches")
-        .delete()
-        .eq("id", batchToDelete.id);
-      if (error) throw error;
-      fetchBatches();
-      cancelDelete();
+      await deleteBatch(batchToDelete.id);
+      setBatchToDelete(null);
+      setShowDeleteConfirm(false);
     } catch (error) {
-      console.error("Error deleting batch:", error);
       alert("Failed to delete batch.");
     }
+  };
+
+  // --- Schedule Helpers ---
+
+  const formatTimeRange = (start, end) => {
+    const format = (t) => {
+      if (!t) return "";
+      let [h, m] = t.split(":");
+      h = parseInt(h);
+      const ampm = h >= 12 ? "PM" : "AM";
+      return `${h % 12 || 12}:${m} ${ampm}`;
+    };
+    return `${format(start)} - ${format(end)}`;
+  };
+
+  const addScheduleItem = () => {
+    const { startTime, endTime, days } = currentSchedule;
+    if (!startTime || !endTime || days.length === 0) {
+      return alert("Please select start time, end time, and at least one day.");
+    }
+
+    setSchedules([
+      ...schedules,
+      {
+        ...currentSchedule,
+        timing: formatTimeRange(startTime, endTime),
+      },
+    ]);
+
+    // Reset days only, keep time/mode for faster entry
+    setCurrentSchedule((prev) => ({ ...prev, days: [] }));
   };
 
   const toggleDay = (day) => {
@@ -223,53 +154,26 @@ export default function BatchManagement() {
                   <Edit2 size={16} />
                 </button>
                 <button
-                  onClick={() => confirmDelete(batch)}
+                  onClick={() => {
+                    setBatchToDelete(batch);
+                    setShowDeleteConfirm(true);
+                  }}
                   className="text-red-600 hover:bg-red-50 p-1 rounded"
                 >
                   <Trash2 size={16} />
                 </button>
               </div>
             </div>
-
-            {/* Added max-h-48 and overflow-y-auto to limit view to approx 2 items */}
             <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
               {(batch.schedule || []).map((sched, idx) => (
-                <div
-                  key={idx}
-                  className="text-sm bg-gray-50 p-2 rounded border border-gray-100"
-                >
-                  <div className="flex items-center gap-2 font-medium text-gray-700">
-                    <Clock size={14} className="text-green-600" />{" "}
-                    {sched.timing}
-                  </div>
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                    {sched.mode === "Online" ? (
-                      <Wifi size={12} />
-                    ) : (
-                      <MapPin size={12} />
-                    )}
-                    <span className="uppercase font-bold tracking-wider text-green-700">
-                      {sched.mode}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1 mt-2">
-                    {sched.days.map((d) => (
-                      <span
-                        key={d}
-                        className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full"
-                      >
-                        {d.substring(0, 3)}
-                      </span>
-                    ))}
-                  </div>
-                </div>
+                <ScheduleDisplay key={idx} schedule={sched} compact={true} />
               ))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* MODAL */}
+      {/* EDIT/CREATE MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
@@ -282,7 +186,7 @@ export default function BatchManagement() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form onSubmit={handleSave} className="p-6 space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Batch Name
@@ -292,7 +196,6 @@ export default function BatchManagement() {
                   value={batchName}
                   onChange={(e) => setBatchName(e.target.value)}
                   className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="e.g. Morning Yoga"
                   required
                 />
               </div>
@@ -303,40 +206,30 @@ export default function BatchManagement() {
                   Add Schedule Entry
                 </h4>
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
-                    <label className="text-xs text-gray-500">Start Time</label>
-                    <input
-                      type="time"
-                      value={currentSchedule.startTime}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          startTime: e.target.value,
-                        })
-                      }
-                      className="w-full text-sm p-2 border rounded"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500">End Time</label>
-                    <input
-                      type="time"
-                      value={currentSchedule.endTime}
-                      onChange={(e) =>
-                        setCurrentSchedule({
-                          ...currentSchedule,
-                          endTime: e.target.value,
-                        })
-                      }
-                      className="w-full text-sm p-2 border rounded"
-                    />
-                  </div>
+                  <input
+                    type="time"
+                    value={currentSchedule.startTime}
+                    onChange={(e) =>
+                      setCurrentSchedule({
+                        ...currentSchedule,
+                        startTime: e.target.value,
+                      })
+                    }
+                    className="w-full text-sm p-2 border rounded"
+                  />
+                  <input
+                    type="time"
+                    value={currentSchedule.endTime}
+                    onChange={(e) =>
+                      setCurrentSchedule({
+                        ...currentSchedule,
+                        endTime: e.target.value,
+                      })
+                    }
+                    className="w-full text-sm p-2 border rounded"
+                  />
                 </div>
-
                 <div className="mb-3">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Mode
-                  </label>
                   <select
                     value={currentSchedule.mode}
                     onChange={(e) =>
@@ -351,29 +244,22 @@ export default function BatchManagement() {
                     <option value="Online">Online</option>
                   </select>
                 </div>
-
-                <div className="mb-4">
-                  <label className="text-xs text-gray-500 block mb-1">
-                    Days
-                  </label>
-                  <div className="flex flex-wrap gap-1">
-                    {weekDays.map((day) => (
-                      <button
-                        key={day}
-                        type="button"
-                        onClick={() => toggleDay(day)}
-                        className={`px-2 py-1 text-xs rounded border ${
-                          currentSchedule.days.includes(day)
-                            ? "bg-green-600 text-white border-green-600"
-                            : "bg-white text-gray-600 border-gray-200"
-                        }`}
-                      >
-                        {day.substring(0, 3)}
-                      </button>
-                    ))}
-                  </div>
+                <div className="mb-4 flex flex-wrap gap-1">
+                  {weekDays.map((day) => (
+                    <button
+                      key={day}
+                      type="button"
+                      onClick={() => toggleDay(day)}
+                      className={`px-2 py-1 text-xs rounded border ${
+                        currentSchedule.days.includes(day)
+                          ? "bg-green-600 text-white"
+                          : "bg-white"
+                      }`}
+                    >
+                      {day.substring(0, 3)}
+                    </button>
+                  ))}
                 </div>
-
                 <button
                   type="button"
                   onClick={addScheduleItem}
@@ -383,37 +269,20 @@ export default function BatchManagement() {
                 </button>
               </div>
 
-              {/* Schedule List */}
+              {/* Added Schedules List */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700">
                   Current Schedule
                 </label>
-                {schedules.length === 0 && (
-                  <p className="text-xs text-gray-400 italic">
-                    No schedules added yet.
-                  </p>
-                )}
                 {schedules.map((s, idx) => (
-                  <div
+                  <ScheduleDisplay
                     key={idx}
-                    className="flex justify-between items-center bg-green-50 p-3 rounded border border-green-100"
-                  >
-                    <div>
-                      <div className="text-sm font-bold text-gray-800">
-                        {s.timing} ({s.mode})
-                      </div>
-                      <div className="text-xs text-green-700 mt-1">
-                        {s.days.join(", ")}
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => removeScheduleItem(idx)}
-                      className="text-red-500 hover:bg-red-100 p-1 rounded"
-                    >
-                      <X size={16} />
-                    </button>
-                  </div>
+                    schedule={s}
+                    compact={true}
+                    onDelete={() =>
+                      setSchedules(schedules.filter((_, i) => i !== idx))
+                    }
+                  />
                 ))}
               </div>
 
@@ -437,7 +306,7 @@ export default function BatchManagement() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal (Same as before) */}
+      {/* DELETE CONFIRM MODAL */}
       {showDeleteConfirm && batchToDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6">
@@ -447,7 +316,7 @@ export default function BatchManagement() {
             </p>
             <div className="flex gap-2">
               <button
-                onClick={cancelDelete}
+                onClick={() => setShowDeleteConfirm(false)}
                 className="flex-1 py-2 border rounded"
               >
                 Cancel

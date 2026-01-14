@@ -1,10 +1,36 @@
-import { useState, useEffect } from "react";
-import { X, Clock, Wifi, MapPin } from "lucide-react";
-import { supabase } from "../lib/supabase";
+import { useState } from "react";
+import { X } from "lucide-react";
+import { useBatches } from "../hooks/useYogaData";
+import ScheduleDisplay from "./ScheduleDisplay";
+
+// Helper: Parse "HH:MM AM - HH:MM PM" into minutes for layout
+// Defined outside component to avoid recreation
+const parseTimeRange = (timeStr) => {
+  try {
+    if (!timeStr) return null;
+    const [startStr, endStr] = timeStr.split("-").map((s) => s.trim());
+
+    const toMinutes = (time) => {
+      const [t, period] = time.split(" ");
+      let [hours, minutes] = t.split(":").map(Number);
+      if (period === "PM" && hours !== 12) hours += 12;
+      if (period === "AM" && hours === 12) hours = 0;
+      return hours * 60 + minutes;
+    };
+
+    const start = toMinutes(startStr);
+    const end = toMinutes(endStr);
+    let duration = end - start;
+    if (duration < 0) duration += 24 * 60;
+
+    return { start, duration };
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function ScheduleManagement() {
-  const [batches, setBatches] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { batches, loading } = useBatches();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
 
@@ -18,26 +44,6 @@ export default function ScheduleManagement() {
     "Sunday",
   ];
 
-  useEffect(() => {
-    fetchBatches();
-  }, []);
-
-  const fetchBatches = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("batches")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      setBatches(data || []);
-    } catch (error) {
-      console.error("Error fetching batches:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const openModal = (session) => {
     setSelectedSession(session);
     setIsModalOpen(true);
@@ -48,51 +54,25 @@ export default function ScheduleManagement() {
     setSelectedSession(null);
   };
 
-  const parseTimeRange = (timeStr) => {
-    try {
-      if (!timeStr) return null;
-      const [startStr, endStr] = timeStr.split("-").map((s) => s.trim());
-
-      const toMinutes = (time) => {
-        const [t, period] = time.split(" ");
-        let [hours, minutes] = t.split(":").map(Number);
-        if (period === "PM" && hours !== 12) hours += 12;
-        if (period === "AM" && hours === 12) hours = 0;
-        return hours * 60 + minutes;
-      };
-
-      const start = toMinutes(startStr);
-      const end = toMinutes(endStr);
-      let duration = end - start;
-      if (duration < 0) duration += 24 * 60;
-
-      return { start, duration };
-    } catch (e) {
-      return null;
-    }
-  };
-
   const getDayLayout = (day) => {
     // Flatten batches into individual schedule sessions for the day
     const dayItems = batches
       .flatMap((batch) => {
         const schedules = batch.schedule || [];
-
         // Find all schedule entries for this batch that occur on 'day'
         return schedules
           .filter((sched) => sched.days && sched.days.includes(day))
           .map((sched) => {
             const time = parseTimeRange(sched.timing);
             if (!time) return null;
-
             return {
-              id: batch.id, // Keep original batch ID for reference
+              id: batch.id,
               name: batch.name,
               ...time, // start, duration
               mode: sched.mode,
               timingLabel: sched.timing,
-              days: sched.days, // Pass full list of days for this specific schedule
-              uniqueKey: `${batch.id}-${sched.timing}-${day}`, // Unique key for React rendering
+              days: sched.days,
+              uniqueKey: `${batch.id}-${sched.timing}-${day}`,
             };
           });
       })
@@ -101,10 +81,8 @@ export default function ScheduleManagement() {
 
     // Calculate overlap/lane index
     const lanes = [];
-
-    const itemsWithLane = dayItems.map((item) => {
+    return dayItems.map((item) => {
       let laneIndex = -1;
-
       for (let i = 0; i < lanes.length; i++) {
         if (lanes[i] <= item.start) {
           laneIndex = i;
@@ -112,16 +90,12 @@ export default function ScheduleManagement() {
           break;
         }
       }
-
       if (laneIndex === -1) {
         laneIndex = lanes.length;
         lanes.push(item.start + item.duration);
       }
-
       return { ...item, laneIndex };
     });
-
-    return itemsWithLane;
   };
 
   if (loading) {
@@ -135,7 +109,7 @@ export default function ScheduleManagement() {
   const START_HOUR = 5;
   const END_HOUR = 22;
   const TOTAL_MINUTES = (END_HOUR - START_HOUR) * 60;
-  const STACK_OFFSET = 6; // Pixels to offset for overlapping cards
+  const STACK_OFFSET = 6;
 
   return (
     <div className="h-full flex flex-col gap-4">
@@ -154,9 +128,8 @@ export default function ScheduleManagement() {
       </div>
 
       <div className="flex-1 bg-white rounded-lg shadow-md border border-gray-200 flex flex-col overflow-hidden">
-        {/* Scroll Container for Mobile - Horizontal Scroll ONLY */}
+        {/* Scroll Container */}
         <div className="flex-1 overflow-x-auto overflow-y-hidden custom-scrollbar">
-          {/* Inner Content - Min Width forces horizontal scroll on mobile */}
           <div className="h-full flex flex-col min-w-[800px] md:min-w-0 md:w-full pr-6">
             {/* Time Header */}
             <div className="shrink-0 flex border-b border-gray-200 py-3 bg-gray-50">
@@ -180,7 +153,7 @@ export default function ScheduleManagement() {
               </div>
             </div>
 
-            {/* Schedule Rows Container */}
+            {/* Schedule Rows */}
             <div className="flex-1 flex flex-col min-h-0">
               {weekDays.map((day) => {
                 const items = getDayLayout(day);
@@ -199,7 +172,7 @@ export default function ScheduleManagement() {
 
                     {/* Timeline Lane */}
                     <div className="flex-1 relative h-full border-l border-gray-100">
-                      {/* Vertical Grid Lines */}
+                      {/* Grid Lines */}
                       {Array.from({ length: END_HOUR - START_HOUR }).map(
                         (_, i) => (
                           <div
@@ -220,26 +193,21 @@ export default function ScheduleManagement() {
                         const leftPercent = (startOffset / TOTAL_MINUTES) * 100;
                         const widthPercent =
                           (session.duration / TOTAL_MINUTES) * 100;
-
                         const stackShift = session.laneIndex * STACK_OFFSET;
-
-                        // Color coding based on mode
                         const isOnline = session.mode === "Online";
-                        const bgColor = isOnline
-                          ? "bg-blue-500"
-                          : "bg-green-500";
-                        const hoverColor = isOnline
-                          ? "hover:bg-blue-600"
-                          : "hover:bg-green-600";
-                        const borderColor = isOnline
-                          ? "border-blue-400/50"
-                          : "border-green-400/50";
 
                         return (
                           <div
                             key={session.uniqueKey}
                             onClick={() => openModal(session)}
-                            className={`absolute ${bgColor} ${hoverColor} rounded shadow-sm cursor-pointer flex flex-col items-center justify-center overflow-hidden transition-all hover:scale-105 border ${borderColor} z-10`}
+                            className={`
+                              absolute rounded shadow-sm cursor-pointer flex flex-col items-center justify-center overflow-hidden transition-all hover:scale-105 border z-10
+                              ${
+                                isOnline
+                                  ? "bg-blue-500 hover:bg-blue-600 border-blue-400/50"
+                                  : "bg-green-500 hover:bg-green-600 border-green-400/50"
+                              }
+                            `}
                             style={{
                               left: `${leftPercent}%`,
                               width: `${widthPercent}%`,
@@ -294,57 +262,17 @@ export default function ScheduleManagement() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Timing
-                </label>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Clock size={18} className="text-green-600" />
-                  <span className="font-medium">
-                    {selectedSession.timingLabel}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-500 mb-1">
-                  Mode
-                </label>
-                <div className="flex items-center gap-2 text-gray-700">
-                  {selectedSession.mode === "Online" ? (
-                    <Wifi size={18} className="text-blue-500" />
-                  ) : (
-                    <MapPin size={18} className="text-green-500" />
-                  )}
-                  <span
-                    className={`font-bold ${
-                      selectedSession.mode === "Online"
-                        ? "text-blue-600"
-                        : "text-green-600"
-                    }`}
-                  >
-                    {selectedSession.mode}
-                  </span>
-                </div>
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-500 mb-2">
-                  Scheduled Days (For this timing)
+                  Schedule Information
                 </label>
-                <div className="flex flex-wrap gap-2">
-                  {weekDays.map((day) => {
-                    const isActive = selectedSession.days.includes(day);
-                    if (!isActive) return null;
-                    return (
-                      <span
-                        key={day}
-                        className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-                      >
-                        {day.substring(0, 3)}
-                      </span>
-                    );
-                  })}
-                </div>
+                <ScheduleDisplay
+                  schedule={{
+                    timing: selectedSession.timingLabel,
+                    mode: selectedSession.mode,
+                    days: selectedSession.days,
+                  }}
+                  compact={false}
+                />
               </div>
 
               <div className="pt-2">
