@@ -1,117 +1,18 @@
 /*
-  # Yoga Institute Student Management System Database Schema
+  # Yoga Institute Student Management System Database Schema (Modified)
 
   ## Overview
-  This migration creates the complete database structure for managing yoga institute students and batches,
-  including payment tracking and automated reminder systems.
+  This migration creates the complete database structure based on the provided schema dump.
+  It aligns with the code requiring `batches` (with JSON scheduling), `students`, and `profiles` linked to Auth.
 
-  ## New Tables
-
-  ### 1. `batches`
-  Stores batch information including timing and schedule
-  - `id` (uuid, primary key) - Unique identifier for each batch
-  - `name` (text) - Name of the batch
-  - `timing` (text) - Batch timing (e.g., "6:00 AM - 7:00 AM")
-  - `weekly_days` (text[]) - Array of days when batch runs (e.g., ["Monday", "Wednesday", "Friday"])
-  - `created_at` (timestamptz) - Record creation timestamp
-  - `updated_at` (timestamptz) - Last update timestamp
-
-  ### 2. `students`
-  Stores comprehensive student information and payment details
-  - `id` (uuid, primary key) - Unique identifier for each student
-  - `batch_id` (uuid, foreign key) - References batches table
-  - `name` (text) - Student's full name
-  - `whatsapp_number` (text) - WhatsApp contact number
-  - `admission_date` (date) - Date of admission
-  - `due_date` (integer) - Day of month when payment is due (1-31)
-  - `fees_amount` (numeric) - Monthly fees amount
-  - `payment_status` (text) - Current payment status: 'paid' or 'unpaid'
-  - `payment_bank` (text) - Bank used for payment
-  - `last_payment_date` (timestamptz) - Timestamp of last payment
-  - `created_at` (timestamptz) - Record creation timestamp
-  - `updated_at` (timestamptz) - Last update timestamp
-
-  ### 3. `payment_history`
-  Tracks all payment transactions for audit and history
-  - `id` (uuid, primary key) - Unique identifier for each payment record
-  - `student_id` (uuid, foreign key) - References students table
-  - `payment_date` (timestamptz) - Date when payment was made
-  - `amount` (numeric) - Payment amount
-  - `status` (text) - Payment status
-  - `created_at` (timestamptz) - Record creation timestamp
-
-  ## Security
-
-  1. Row Level Security (RLS) Enabled
-     - All tables have RLS enabled for data protection
-     
-  2. Policies Created
-     - Authenticated users can perform all operations on batches
-     - Authenticated users can perform all operations on students
-     - Authenticated users can perform all operations on payment_history
-     - Public read access for batches and students (for dashboard display)
-
-  ## Indexes
-  - Index on students.batch_id for faster batch-student queries
-  - Index on students.payment_status for payment filtering
-  - Index on payment_history.student_id for payment history retrieval
-
-  ## Important Notes
-  - Due date is stored as day of month (1-31) based on admission date
-  - Payment status defaults to 'unpaid' for new students
-  - Triggers automatically update updated_at timestamps
-  - Foreign key constraints ensure data integrity
+  ## Tables
+  1. `batches` - Stores class batches and JSON schedules.
+  2. `profiles` - Extends Supabase Auth with verification status.
+  3. `students` - Main student records with payment status tracking.
+  4. `payment_history` - Transaction logs (Retained from original schema).
 */
 
--- Create batches table
-CREATE TABLE IF NOT EXISTS batches (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  name text NOT NULL,
-  created_at timestamp with time zone DEFAULT now(),
-  updated_at timestamp with time zone DEFAULT now(),
-  schedule jsonb DEFAULT '[]'::jsonb,
-);
-
-CREATE TABLE IF NOT EXISTS profiles (
-  id uuid NOT NULL,
-  email text,
-  is_verified boolean DEFAULT false,
-  created_at timestamp with time zone DEFAULT now(),
-);
-
--- Create students table
-CREATE TABLE IF NOT EXISTS students (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  batch_id uuid REFERENCES batches(id) ON DELETE SET NULL,
-  name text NOT NULL,
-  whatsapp_number text NOT NULL,
-  admission_date date NOT NULL DEFAULT CURRENT_DATE,
-  due_date integer NOT NULL CHECK (due_date >= 1 AND due_date <= 31),
-  fees_amount numeric(10, 2) NOT NULL,
-  payment_status text NOT NULL DEFAULT 'unpaid' CHECK (payment_status IN ('paid', 'unpaid')),
-  payment_bank text DEFAULT '',
-  last_payment_date timestamptz,
-  created_at timestamptz DEFAULT now(),
-  updated_at timestamptz DEFAULT now(),
-  receipt_provided boolean DEFAULT false,
-);
-
--- Create payment history table
-CREATE TABLE IF NOT EXISTS payment_history (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
-  payment_date timestamptz DEFAULT now(),
-  amount numeric(10, 2) NOT NULL,
-  status text NOT NULL DEFAULT 'paid',
-  created_at timestamptz DEFAULT now()
-);
-
--- Create indexes for performance
-CREATE INDEX IF NOT EXISTS idx_students_batch_id ON students(batch_id);
-CREATE INDEX IF NOT EXISTS idx_students_payment_status ON students(payment_status);
-CREATE INDEX IF NOT EXISTS idx_payment_history_student_id ON payment_history(student_id);
-
--- Create function to automatically update updated_at timestamp
+-- 1. Helper Function for Timestamps
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -120,7 +21,64 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Create triggers for updated_at
+-- 2. Create batches table
+CREATE TABLE IF NOT EXISTS public.batches (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  schedule jsonb DEFAULT '[]'::jsonb,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  CONSTRAINT batches_pkey PRIMARY KEY (id)
+);
+
+-- 3. Create profiles table (Linked to auth.users)
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id uuid NOT NULL,
+  email text,
+  is_verified boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT profiles_pkey PRIMARY KEY (id),
+  CONSTRAINT profiles_id_fkey FOREIGN KEY (id) REFERENCES auth.users(id) ON DELETE CASCADE
+);
+
+-- 4. Create students table
+CREATE TABLE IF NOT EXISTS public.students (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  batch_id uuid DEFAULT NULL, -- Fixed: changed from gen_random_uuid() to prevent FK errors
+  name text NOT NULL,
+  whatsapp_number text NOT NULL,
+  admission_date date NOT NULL DEFAULT CURRENT_DATE,
+  due_date integer NOT NULL,
+  fees_amount numeric NOT NULL,
+  payment_status text NOT NULL DEFAULT 'unpaid',
+  payment_bank text DEFAULT '',
+  last_payment_date timestamptz,
+  receipt_provided boolean DEFAULT false,
+  created_at timestamptz DEFAULT now(),
+  updated_at timestamptz DEFAULT now(),
+  CONSTRAINT students_pkey PRIMARY KEY (id),
+  CONSTRAINT students_batch_id_fkey FOREIGN KEY (batch_id) REFERENCES batches(id) ON DELETE SET NULL,
+  CONSTRAINT students_due_date_check CHECK (due_date >= 1 AND due_date <= 31),
+  CONSTRAINT students_payment_status_check CHECK (payment_status IN ('paid', 'unpaid'))
+);
+
+-- 5. Create payment_history table (Retained for consistency)
+CREATE TABLE IF NOT EXISTS public.payment_history (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  student_id uuid REFERENCES students(id) ON DELETE CASCADE,
+  payment_date timestamptz DEFAULT now(),
+  amount numeric(10, 2) NOT NULL,
+  status text NOT NULL DEFAULT 'paid',
+  created_at timestamptz DEFAULT now(),
+  CONSTRAINT payment_history_pkey PRIMARY KEY (id)
+);
+
+-- 6. Indexes
+CREATE INDEX IF NOT EXISTS idx_students_batch_id ON public.students USING btree (batch_id);
+CREATE INDEX IF NOT EXISTS idx_students_payment_status ON public.students USING btree (payment_status);
+CREATE INDEX IF NOT EXISTS idx_payment_history_student_id ON public.payment_history USING btree (student_id);
+
+-- 7. Triggers
 DROP TRIGGER IF EXISTS update_batches_updated_at ON batches;
 CREATE TRIGGER update_batches_updated_at
   BEFORE UPDATE ON batches
@@ -133,73 +91,42 @@ CREATE TRIGGER update_students_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Enable Row Level Security
+-- 8. Row Level Security (RLS)
 ALTER TABLE batches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE students ENABLE ROW LEVEL SECURITY;
 ALTER TABLE payment_history ENABLE ROW LEVEL SECURITY;
 
--- Create policies for batches
-CREATE POLICY "Allow public read access to batches"
-  ON batches FOR SELECT
-  TO public
+-- 9. Policies
+
+-- Profiles: Users can only see their own profile
+CREATE POLICY "Users can view own profile" 
+  ON profiles FOR SELECT TO authenticated 
+  USING (auth.uid() = id);
+
+-- Batches: Public read, Authenticated write
+CREATE POLICY "Allow public read access to batches" 
+  ON batches FOR SELECT TO public 
   USING (true);
 
-CREATE POLICY "Allow authenticated users to insert batches"
-  ON batches FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
+CREATE POLICY "Allow authenticated users full access to batches" 
+  ON batches FOR ALL TO authenticated 
+  USING (true) WITH CHECK (true);
 
-CREATE POLICY "Allow authenticated users to update batches"
-  ON batches FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
-
-CREATE POLICY "Allow authenticated users to delete batches"
-  ON batches FOR DELETE
-  TO authenticated
+-- Students: Public read, Authenticated write
+CREATE POLICY "Allow public read access to students" 
+  ON students FOR SELECT TO public 
   USING (true);
 
--- Create policies for students
-CREATE POLICY "Allow public read access to students"
-  ON students FOR SELECT
-  TO public
+CREATE POLICY "Allow authenticated users full access to students" 
+  ON students FOR ALL TO authenticated 
+  USING (true) WITH CHECK (true);
+
+-- Payment History: Public read, Authenticated write
+CREATE POLICY "Allow public read access to payment_history" 
+  ON payment_history FOR SELECT TO public 
   USING (true);
 
-CREATE POLICY "Allow authenticated users to insert students"
-  ON students FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
-
-CREATE POLICY "Allow authenticated users to update students"
-  ON students FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
-
-CREATE POLICY "Allow authenticated users to delete students"
-  ON students FOR DELETE
-  TO authenticated
-  USING (true);
-
--- Create policies for payment_history
-CREATE POLICY "Allow public read access to payment_history"
-  ON payment_history FOR SELECT
-  TO public
-  USING (true);
-
-CREATE POLICY "Allow authenticated users to insert payment_history"
-  ON payment_history FOR INSERT
-  TO authenticated
-  WITH CHECK (true);
-
-CREATE POLICY "Allow authenticated users to update payment_history"
-  ON payment_history FOR UPDATE
-  TO authenticated
-  USING (true)
-  WITH CHECK (true);
-
-CREATE POLICY "Allow authenticated users to delete payment_history"
-  ON payment_history FOR DELETE
-  TO authenticated
-  USING (true);
+CREATE POLICY "Allow authenticated users full access to payment_history" 
+  ON payment_history FOR ALL TO authenticated 
+  USING (true) WITH CHECK (true);
