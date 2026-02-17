@@ -7,7 +7,7 @@ export default function StudentModal({ student, batchId, onClose }) {
     name: "",
     whatsapp_number: "",
     admission_date: new Date().toISOString().split("T")[0],
-    due_date: 1,
+    due_date: 15,
     fees_amount: "",
     payment_bank: "",
   });
@@ -140,11 +140,9 @@ export default function StudentModal({ student, batchId, onClose }) {
                 type="date"
                 value={formData.admission_date}
                 onChange={(e) => {
-                  const date = new Date(e.target.value);
                   setFormData({
                     ...formData,
                     admission_date: e.target.value,
-                    due_date: date.getDate(),
                   });
                 }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
@@ -229,8 +227,8 @@ export default function StudentModal({ student, batchId, onClose }) {
               {loading
                 ? "Saving..."
                 : student
-                ? "Update Student"
-                : "Add Student"}
+                  ? "Update Student"
+                  : "Add Student"}
             </button>
           </div>
         </form>
