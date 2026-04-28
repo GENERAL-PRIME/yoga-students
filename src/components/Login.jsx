@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { Loader2, Mail, Lock, User, Phone, ArrowLeft } from "lucide-react";
+import {
+  Loader2,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+} from "lucide-react";
 
 export default function Login({ onStudentLogin }) {
   const [activeTab, setActiveTab] = useState("student"); // 'admin' or 'student'
@@ -12,12 +21,16 @@ export default function Login({ onStudentLogin }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showAdminPassword, setShowAdminPassword] = useState(false);
 
   // --- Student State ---
   const [loginId, setLoginId] = useState("");
   const [studentPassword, setStudentPassword] = useState("");
+  const [showStudentPassword, setShowStudentPassword] = useState(false);
+
   const [isFirstLogin, setIsFirstLogin] = useState(false);
   const [newPassword, setNewPassword] = useState("");
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [pendingStudent, setPendingStudent] = useState(null);
 
   // --- Student Forgot Password State ---
@@ -25,6 +38,7 @@ export default function Login({ onStudentLogin }) {
   const [forgotLoginId, setForgotLoginId] = useState("");
   const [forgotWhatsapp, setForgotWhatsapp] = useState("");
   const [forgotNewPassword, setForgotNewPassword] = useState("");
+  const [showForgotNewPassword, setShowForgotNewPassword] = useState(false);
 
   // ==============================
   // ADMIN AUTHENTICATION LOGIC
@@ -128,7 +142,6 @@ export default function Login({ onStudentLogin }) {
     setError(null);
 
     try {
-      // 1. Verify if Login ID and WhatsApp match exactly
       const { data: studentMatch, error: fetchError } = await supabase
         .from("students")
         .select("id, name")
@@ -142,7 +155,6 @@ export default function Login({ onStudentLogin }) {
         );
       }
 
-      // 2. If matched, update the password
       const { error: updateError } = await supabase
         .from("students")
         .update({ password: forgotNewPassword, is_first_login: false })
@@ -150,12 +162,11 @@ export default function Login({ onStudentLogin }) {
 
       if (updateError) throw updateError;
 
-      // 3. Reset UI and show success
       setMessage(
         `Password reset successful for ${studentMatch.name}! You can now log in.`,
       );
       setShowForgotMode(false);
-      setLoginId(forgotLoginId); // Pre-fill login ID for convenience
+      setLoginId(forgotLoginId);
       setForgotLoginId("");
       setForgotWhatsapp("");
       setForgotNewPassword("");
@@ -172,7 +183,7 @@ export default function Login({ onStudentLogin }) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 border border-green-100 relative overflow-hidden">
-        {/* Toggle Tabs (Hidden if student is setting a new password or in forgot mode) */}
+        {/* Toggle Tabs */}
         {!isFirstLogin && !showForgotMode && (
           <div className="flex mb-8 bg-gray-100 rounded-lg p-1">
             <button
@@ -291,14 +302,27 @@ export default function Login({ onStudentLogin }) {
                     size={18}
                   />
                   <input
-                    type="password"
+                    type={showForgotNewPassword ? "text" : "password"}
                     value={forgotNewPassword}
                     onChange={(e) => setForgotNewPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                     placeholder="Min. 6 characters"
                     minLength={6}
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowForgotNewPassword(!showForgotNewPassword)
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
+                  >
+                    {showForgotNewPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -338,14 +362,21 @@ export default function Login({ onStudentLogin }) {
                   size={18}
                 />
                 <input
-                  type="password"
+                  type={showNewPassword ? "text" : "password"}
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                  className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                   required
                   minLength={6}
                   placeholder="Min. 6 characters"
                 />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
+                >
+                  {showNewPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
               </div>
             </div>
             <button
@@ -401,13 +432,24 @@ export default function Login({ onStudentLogin }) {
                     size={18}
                   />
                   <input
-                    type="password"
+                    type={showStudentPassword ? "text" : "password"}
                     value={studentPassword}
                     onChange={(e) => setStudentPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
+                    className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
                     placeholder="••••••••"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowStudentPassword(!showStudentPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
+                  >
+                    {showStudentPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
                 </div>
               </div>
               <div className="flex justify-end mt-2">
@@ -478,13 +520,24 @@ export default function Login({ onStudentLogin }) {
                     size={18}
                   />
                   <input
-                    type="password"
+                    type={showAdminPassword ? "text" : "password"}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
+                    className="w-full pl-10 pr-12 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
                     placeholder="••••••••"
                     required
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowAdminPassword(!showAdminPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none p-1"
+                  >
+                    {showAdminPassword ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
                 </div>
               </div>
 
