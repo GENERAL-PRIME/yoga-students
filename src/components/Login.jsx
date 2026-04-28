@@ -88,14 +88,21 @@ export default function Login({ onStudentLogin }) {
     setMessage(null);
     setError(null);
     try {
+      // Clean inputs to prevent accidental space/case errors
+      const cleanLoginId = loginId.trim();
+      const cleanPassword = studentPassword.trim();
+
       const { data, error } = await supabase
         .from("students")
         .select("*")
-        .eq("login_id", loginId)
-        .eq("password", studentPassword)
+        .ilike("login_id", cleanLoginId) // Case-insensitive match
+        .eq("password", cleanPassword)
         .single();
 
-      if (error || !data) throw new Error("Invalid Login ID or Password.");
+      if (error || !data)
+        throw new Error(
+          "Invalid Login ID or Password. Please check your credentials.",
+        );
 
       if (data.is_first_login) {
         setIsFirstLogin(true);
@@ -142,16 +149,19 @@ export default function Login({ onStudentLogin }) {
     setError(null);
 
     try {
+      const cleanLoginId = forgotLoginId.trim();
+      const cleanWhatsapp = forgotWhatsapp.trim();
+
       const { data: studentMatch, error: fetchError } = await supabase
         .from("students")
         .select("id, name")
-        .eq("login_id", forgotLoginId.trim())
-        .eq("whatsapp_number", forgotWhatsapp.trim())
+        .ilike("login_id", cleanLoginId)
+        .eq("whatsapp_number", cleanWhatsapp)
         .single();
 
       if (fetchError || !studentMatch) {
         throw new Error(
-          "Verification failed. Make sure your Login ID and registered WhatsApp number are correct.",
+          "Verification failed. Make sure your Login ID and registered WhatsApp number match exactly.",
         );
       }
 
@@ -166,7 +176,7 @@ export default function Login({ onStudentLogin }) {
         `Password reset successful for ${studentMatch.name}! You can now log in.`,
       );
       setShowForgotMode(false);
-      setLoginId(forgotLoginId);
+      setLoginId(forgotLoginId.toUpperCase());
       setForgotLoginId("");
       setForgotWhatsapp("");
       setForgotNewPassword("");
