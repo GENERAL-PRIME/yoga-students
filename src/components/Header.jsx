@@ -1,9 +1,13 @@
 import { Menu, LogOut } from "lucide-react";
 import { supabase } from "../lib/supabase";
 
-export default function Header({ onMenuClick }) {
+export default function Header({ onMenuClick, onLogout }) {
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    if (onLogout) {
+      onLogout();
+    } else {
+      await supabase.auth.signOut();
+    }
   };
 
   return (

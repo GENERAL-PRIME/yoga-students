@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import Login from "./components/Login";
-import PendingApproval from "./components/PendingApproval"; // Import the new component
+import PendingApproval from "./components/PendingApproval";
 import Header from "./components/Header";
 import Sidebar from "./components/Sidebar";
 import StudentDashboard from "./components/StudentDashboard";
@@ -9,16 +9,24 @@ import BatchManagement from "./components/BatchManagement";
 import ScheduleManagement from "./components/ScheduleManagement";
 import Dashboard from "./components/Dashboard";
 import { Loader2 } from "lucide-react";
+import StudentPortal from "./components/StudentPortal";
 
 function App() {
   const [session, setSession] = useState(null);
-  const [isVerified, setIsVerified] = useState(false); // State for verification
+  const [studentSession, setStudentSession] = useState(null); // NEW: State for student login
+  const [isVerified, setIsVerified] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   useEffect(() => {
-    // 1. Get Session
+    // 0. Check for Student Session in LocalStorage
+    const storedStudent = localStorage.getItem("studentSession");
+    if (storedStudent) {
+      setStudentSession(JSON.parse(storedStudent));
+    }
+
+    // 1. Get Admin Session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       if (session) {
@@ -28,7 +36,7 @@ function App() {
       }
     });
 
-    // 2. Listen for Auth Changes
+    // 2. Listen for Auth Changes (Admin)
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -44,7 +52,7 @@ function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Helper to check profile status
+  // Helper to check profile status for Admin
   const checkVerification = async (userId) => {
     try {
       const { data, error } = await supabase
@@ -55,7 +63,6 @@ function App() {
 
       if (error) {
         console.error("Error fetching profile:", error);
-        // Handle case where profile triggers might have failed or latency
         setIsVerified(false);
       } else {
         setIsVerified(data?.is_verified || false);
@@ -68,6 +75,17 @@ function App() {
     }
   };
 
+  // Student Authentication Handlers
+  const handleStudentLogin = (studentData) => {
+    localStorage.setItem("studentSession", JSON.stringify(studentData));
+    setStudentSession(studentData);
+  };
+
+  const handleStudentLogout = () => {
+    localStorage.removeItem("studentSession");
+    setStudentSession(null);
+  };
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center bg-gray-50">
@@ -76,17 +94,26 @@ function App() {
     );
   }
 
-  // 1. Not Logged In -> Show Login
-  if (!session) {
-    return <Login />;
+  // --- RENDERING LOGIC ---
+
+  // 1. Logged In as Student -> Show Student Portal
+  if (studentSession) {
+    return (
+      <StudentPortal session={studentSession} onLogout={handleStudentLogout} />
+    );
   }
 
-  // 2. Logged In BUT Not Verified -> Show Pending Screen
+  // 2. Not Logged In at all -> Show Combined Login
+  if (!session) {
+    return <Login onStudentLogin={handleStudentLogin} />;
+  }
+
+  // 3. Logged In as Admin BUT Not Verified -> Show Pending Screen
   if (!isVerified) {
     return <PendingApproval />;
   }
 
-  // 3. Logged In AND Verified -> Show Dashboard
+  // 4. Logged In as Admin AND Verified -> Show Dashboard Layout
   const renderPage = () => {
     switch (currentPage) {
       case "dashboard":
