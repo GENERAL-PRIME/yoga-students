@@ -52,7 +52,9 @@ export default function Login({ onStudentLogin }) {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
-        setMessage("Success! Check your email for the confirmation link.");
+        setMessage(
+          "Success! Check your email for the confirmation link. After confirming, you will be verified by the admin and then you can log in.",
+        );
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
