@@ -27,6 +27,11 @@ export default function StudentPortal({ session, onLogout }) {
   }, [student.batch_id]);
 
   const handleUpdateProfile = async () => {
+    if (whatsapp && whatsapp.length !== 10) {
+      setMessage("Error: WhatsApp number must be exactly 10 digits.");
+      setTimeout(() => setMessage(null), 3000);
+      return;
+    }
     setUpdating(true);
     setMessage(null);
     try {
@@ -166,9 +171,18 @@ export default function StudentPortal({ session, onLogout }) {
                         WhatsApp Number
                       </label>
                       <input
-                        type="text"
+                        type="tel"
+                        maxLength="10"
+                        pattern="[0-9]{10}"
+                        title="Please enter exactly 10 digits"
                         value={whatsapp}
-                        onChange={(e) => setWhatsapp(e.target.value)}
+                        onChange={(e) => {
+                          // Strips out everything except numbers, keeping a max of 10 characters
+                          const value = e.target.value
+                            .replace(/\D/g, "")
+                            .slice(0, 10);
+                          setWhatsapp(value);
+                        }}
                         className="w-full border border-gray-300 p-2.5 rounded-lg focus:ring-2 focus:ring-green-500 outline-none transition-all"
                       />
                     </div>

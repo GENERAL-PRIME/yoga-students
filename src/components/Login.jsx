@@ -293,11 +293,20 @@ export default function Login({ onStudentLogin }) {
                     size={18}
                   />
                   <input
-                    type="text"
+                    type="tel"
+                    maxLength="10"
+                    pattern="[0-9]{10}"
+                    title="Please enter exactly 10 digits"
                     value={forgotWhatsapp}
-                    onChange={(e) => setForgotWhatsapp(e.target.value)}
+                    onChange={(e) => {
+                      // Strips out everything except numbers, keeping a max of 10 characters
+                      const value = e.target.value
+                        .replace(/\D/g, "")
+                        .slice(0, 10);
+                      setForgotWhatsapp(value);
+                    }}
                     className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                    placeholder="+91 9876543210"
+                    placeholder="9876543210"
                     required
                   />
                 </div>

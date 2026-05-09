@@ -145,15 +145,20 @@ export default function StudentModal({ student, batchId, onClose }) {
               </label>
               <input
                 type="tel"
+                maxLength="10"
+                pattern="[0-9]{10}"
+                title="Please enter exactly 10 digits"
                 value={formData.whatsapp_number}
-                onChange={(e) =>
+                onChange={(e) => {
+                  // Strips out everything except numbers, keeping a max of 10 characters
+                  const value = e.target.value.replace(/\D/g, "").slice(0, 10);
                   setFormData({
                     ...formData,
-                    whatsapp_number: e.target.value,
-                  })
-                }
+                    whatsapp_number: value,
+                  });
+                }}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 outline-none"
-                placeholder="+91 98765 43210"
+                placeholder="9876543210"
                 required
               />
             </div>
